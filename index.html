@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brown Noise Test</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background-color: #1a1a1a;
+        color: #fff;
+      }
+      button {
+        padding: 1rem 2rem;
+        font-size: 1.5rem;
+        margin: 1rem;
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        background-color: #4CAF50;
+        color: white;
+      }
+      button:disabled {
+        background-color: #555;
+        cursor: not-allowed;
+      }
+      #stopBtn {
+        background-color: #f44336;
+      }
+      #status {
+        margin-top: 2rem;
+        font-size: 1.2rem;
+        color: #aaa;
+      }
+    </style>
+    <script type="module" crossorigin src="/testnoise/assets/index-BcPpbLoO.js"></script>
+  </head>
+  <body>
+    <h1>Brown Noise Test (Phase 1)</h1>
+    <p>React不要・フィルター無しの純粋なAudioContextテスト</p>
+    
+    <div>
+      <button id="playBtn">Play Brown Noise</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+    <div id="status">Status: Stopped</div>
+
+  </body>
+</html>
