@@ -10,38 +10,48 @@ const stopBtn = document.getElementById('stopBtn') as HTMLButtonElement;
 const statusDiv = document.getElementById('status') as HTMLDivElement;
 
 playBtn.addEventListener('click', async () => {
-  if (!audioContext) {
-    audioContext = new AudioContext();
-    noiseGenerator = new NoiseGenerator(audioContext);
+  try {
+    playBtn.disabled = true;
+    statusDiv.textContent = 'Status: Initializing...';
+
+    if (!audioContext) {
+      audioContext = new AudioContext();
+      noiseGenerator = new NoiseGenerator(audioContext);
+    }
+
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+
+    if (sourceNode) {
+      sourceNode.stop();
+      sourceNode.disconnect();
+    }
+
+    if (!noiseGenerator) return;
+
+    // Phase 1 テスト: フィルターやVolume(GainNode)を一切介さず直接出力
+    // NoiseGenerator で作られたブラウンノイズの AudioBuffer を純粋に再生する
+    sourceNode = noiseGenerator.createSource('brown');
+
+    // NOTE: 安全のため極端な大音量を防ぐGainを1枚だけ挟む
+    const masterGain = audioContext.createGain();
+    masterGain.gain.value = 0.5;
+
+    sourceNode.connect(masterGain);
+    masterGain.connect(audioContext.destination);
+
+    sourceNode.start(0);
+
+    stopBtn.disabled = false;
+    statusDiv.textContent = 'Status: Playing Brown Noise (Pure)';
+
+  } catch (err) {
+    console.error(err);
+    alert('Playback failed. Check console.');
+    playBtn.disabled = false;
+    statusDiv.textContent = 'Status: Error';
   }
-
-  if (audioContext.state === 'suspended') {
-    await audioContext.resume();
-  }
-
-  if (sourceNode) {
-    sourceNode.stop();
-    sourceNode.disconnect();
-  }
-
-  if (!noiseGenerator) return;
-
-  // Phase 1 テスト: フィルターやVolume(GainNode)を一切介さず直接出力
-  // NoiseGenerator で作られたブラウンノイズの AudioBuffer を純粋に再生する
-  sourceNode = noiseGenerator.createSource('brown');
-
-  // NOTE: 安全のため極端な大音量を防ぐGainを1枚だけ挟む（これも将来の検証対象）
-  const masterGain = audioContext.createGain();
-  masterGain.gain.value = 0.5; // 初期化時の固定ボリューム（揺れの原因にならない静的パラメータ）
-
-  sourceNode.connect(masterGain);
-  masterGain.connect(audioContext.destination);
-
-  sourceNode.start();
-
-  playBtn.disabled = true;
-  stopBtn.disabled = false;
-  statusDiv.textContent = 'Status: Playing Brown Noise (Pure)';
 });
 
 stopBtn.addEventListener('click', () => {
