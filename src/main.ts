@@ -1,5 +1,4 @@
 import { NoiseGenerator } from './NoiseGenerator';
-import type { NoiseType } from './types';
 
 let audioContext: AudioContext | null = null;
 let noiseGenerator: NoiseGenerator | null = null;
