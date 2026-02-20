@@ -1,31 +1,16 @@
-import type { NoiseType } from './types';
-
-/**
- * 5色ノイズ生成エンジン
- * 10秒バッファ + 1秒等パワー円環クロスフェード → シームレスループ
- */
 export class NoiseGenerator {
-    private context: AudioContext;
-    private bufferSize: number;
-
-    constructor(context: AudioContext, duration: number = 10) {
+    constructor(context, duration = 10) {
         this.context = context;
         this.bufferSize = context.sampleRate * duration;
     }
 
-    /**
-     * 指定タイプのノイズバッファを生成
-     * 末尾1秒を先頭に等パワーフェードで混合し、完全なシームレスループを実現
-     */
-    public createNoiseBuffer(type: NoiseType): AudioBuffer {
+    createNoiseBuffer(type) {
         const sampleRate = this.context.sampleRate;
         const mainSamples = this.bufferSize;
-        const crossSamples = Math.floor(sampleRate * 1.0); // 1秒のクロスフェード余白
+        const crossSamples = Math.floor(sampleRate * 1.0);
         const totalSamples = mainSamples + crossSamples;
-
         const tempBuffer = new Float32Array(totalSamples);
 
-        // ノイズ生成
         switch (type) {
             case 'white': this.fillWhiteNoise(tempBuffer); break;
             case 'pink': this.fillPinkNoise(tempBuffer); break;
@@ -34,28 +19,23 @@ export class NoiseGenerator {
             case 'violet': this.fillVioletNoise(tempBuffer); break;
         }
 
-        // 等パワー円環クロスフェード
         const finalBuffer = this.context.createBuffer(1, mainSamples, sampleRate);
         const finalData = finalBuffer.getChannelData(0);
 
         for (let i = 0; i < mainSamples; i++) {
             if (i < crossSamples) {
                 const alpha = i / crossSamples;
-                const gainIn = Math.sqrt(alpha);      // 等パワーフェードイン
-                const gainOut = Math.sqrt(1 - alpha); // 等パワーフェードアウト
+                const gainIn = Math.sqrt(alpha);
+                const gainOut = Math.sqrt(1 - alpha);
                 finalData[i] = (tempBuffer[i] * gainIn) + (tempBuffer[mainSamples + i] * gainOut);
             } else {
                 finalData[i] = tempBuffer[i];
             }
         }
-
         return finalBuffer;
     }
 
-    /**
-     * ループ再生用のAudioBufferSourceNodeを作成
-     */
-    public createSource(type: NoiseType): AudioBufferSourceNode {
+    createSource(type) {
         const buffer = this.createNoiseBuffer(type);
         const source = this.context.createBufferSource();
         source.buffer = buffer;
@@ -63,19 +43,12 @@ export class NoiseGenerator {
         return source;
     }
 
-    // ===== ノイズ生成アルゴリズム =====
-
-    /** White: 全帯域均一 */
-    private fillWhiteNoise(data: Float32Array): void {
-        for (let i = 0; i < data.length; i++) {
-            data[i] = Math.random() * 2 - 1;
-        }
+    fillWhiteNoise(data) {
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
     }
 
-    /** Pink: -3dB/oct (Voss-McCartney アルゴリズム) */
-    private fillPinkNoise(data: Float32Array): void {
+    fillPinkNoise(data) {
         let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-
         for (let i = 0; i < data.length; i++) {
             const white = Math.random() * 2 - 1;
             b0 = 0.99886 * b0 + white * 0.0555179;
@@ -89,8 +62,7 @@ export class NoiseGenerator {
         }
     }
 
-    /** Brown: -6dB/oct (ランダムウォーク) */
-    private fillBrownNoise(data: Float32Array): void {
+    fillBrownNoise(data) {
         let lastOut = 0.0;
         for (let i = 0; i < data.length; i++) {
             const white = Math.random() * 2 - 1;
@@ -99,23 +71,20 @@ export class NoiseGenerator {
         }
     }
 
-    /** Blue: +3dB/oct (1次差分 — White Noiseの隣接サンプル差) */
-    private fillBlueNoise(data: Float32Array): void {
+    fillBlueNoise(data) {
         let prev = 0;
         for (let i = 0; i < data.length; i++) {
             const white = Math.random() * 2 - 1;
-            data[i] = (white - prev) * 0.5; // 差分でハイパス特性を付与
+            data[i] = (white - prev) * 0.5;
             prev = white;
         }
     }
 
-    /** Violet: +6dB/oct (2次差分) */
-    private fillVioletNoise(data: Float32Array): void {
-        let prev1 = 0;
-        let prev2 = 0;
+    fillVioletNoise(data) {
+        let prev1 = 0, prev2 = 0;
         for (let i = 0; i < data.length; i++) {
             const white = Math.random() * 2 - 1;
-            data[i] = (white - 2 * prev1 + prev2) * 0.35; // 2次差分でより急峻なハイパス
+            data[i] = (white - 2 * prev1 + prev2) * 0.35;
             prev2 = prev1;
             prev1 = white;
         }
